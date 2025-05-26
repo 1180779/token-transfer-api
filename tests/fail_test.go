@@ -6,6 +6,6 @@ import (
 )
 
 // This test fails to check the workflow.
-func FailTest(t *testing.T) {
+func TestFail(t *testing.T) {
 	assert.Equal(t, true, false, "")
 }
