@@ -3,12 +3,12 @@ LABEL authors="Radosław Głasek <01180779@pw.edu.pl>"
 
 WORKDIR /app
 
-COPY go.mod main.go ./
+COPY go.mod server.go ./
 RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /token-transfer-api ./main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o /token-transfer-api ./server.go
 
 FROM alpine:latest
 
