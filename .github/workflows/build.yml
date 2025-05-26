@@ -26,14 +26,13 @@ jobs:
       - name: Start services
         run: docker compose up -d --wait db tester
         env:
+          DATABASE_URL: "postgres://test:test@db:5432/testdb?sslmode=disable"
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
           POSTGRES_DB: testdb
 
       - name: Run Go tests in tester container
         run: docker compose exec tester go test -v ./tests/integration/...
-        env:
-          DATABASE_URL: "postgres://test:test@db:5432/testdb?sslmode=disable"
 
       - name: Stop services
         if: always()
