@@ -41,3 +41,5 @@ jobs:
 
       - name: Run Go tests in tester container
         run: docker compose run --rm tester go test -v ./tests/integration/...
+        env:
+          DATABASE_URL: "postgresql://test:test@db:5432/testdb?sslmode=disable"
