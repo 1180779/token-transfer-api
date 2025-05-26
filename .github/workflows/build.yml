@@ -32,7 +32,7 @@ jobs:
           POSTGRES_DB: testdb
 
       - name: Run Go tests in tester container
-        run: docker compose exec tester go test -v ./tests/integration/...
+        run: docker compose exec tester go test -v ./tests/...
 
       - name: Stop services
         if: always()
