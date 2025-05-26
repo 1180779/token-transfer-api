@@ -30,16 +30,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.24.3'
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
         run: docker build -t token-transfer-api:latest .
+
+      - name: Stop the app container
+        run: docker compose stop app
 
       - name: Run Go tests in tester container
         run: docker compose run --rm tester go test -v ./tests/integration/...
