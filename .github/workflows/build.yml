@@ -24,7 +24,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Start services
-        run: docker compose up -d --wait db tester --no-build
+        run: docker compose up -d --wait db tester
 
       - name: Run Go tests in tester container
         run: docker compose exec tester go test -v ./tests/integration/...
