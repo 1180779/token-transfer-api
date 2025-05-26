@@ -35,18 +35,6 @@ jobs:
         with:
           go-version: '1.24.3'
 
-      - name: Download wait-for-it.sh
-        run: |
-          curl -o wait-for-it.sh https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh
-          chmod +x wait-for-it.sh
-
-      - name: Wait for PostgreSQL to be ready
-        run: ./wait-for-it.sh localhost:5432 --timeout=60 --strict -- \
-          echo "PostgreSQL is ready!"
-
-      - name: Set Test Database URL
-        run: echo "TEST_DATABASE_URL=postgres://test:test@localhost:5432/testdb?sslmode=disable" >> $GITHUB_ENV
-
       - name: Build Go application
         run: go build -v ./...
 
