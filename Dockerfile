@@ -10,7 +10,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /token-transfer-api ./server.go
 
-FROM alpine:latest
+FROM alpine:latest AS runner
 
 WORKDIR /root/
 
