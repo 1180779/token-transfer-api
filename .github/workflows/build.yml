@@ -25,6 +25,10 @@ jobs:
 
       - name: Start services
         run: docker compose up -d --wait db tester
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
 
       - name: Run Go tests in tester container
         run: docker compose exec tester go test -v ./tests/integration/...
