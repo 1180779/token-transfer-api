@@ -3,7 +3,6 @@ name: Build
 on:
   push:
     branches:
-      - feat/ci-cd
       - main
       - staging
       - develop
