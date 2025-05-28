@@ -1,0 +1,38 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - develop
+  pull_request:
+    branches:
+      - main
+      - staging
+      - develop
+jobs:
+  build-go-and-docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services
+        run: docker compose up -d --wait db tester
+        env:
+          DATABASE_URL: "postgres://test:test@db:5432/testdb?sslmode=disable"
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: testdb
+
+      - name: Run tests
+        run: docker compose exec tester go test -v ./tests/...
+
+      - name: Stop services
+        if: always()
+        run: docker compose down
