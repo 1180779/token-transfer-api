@@ -36,7 +36,7 @@ func (a *Address) Scan(src any) error {
 }
 
 func (a *Address) Value() (driver.Value, error) {
-	underlyingAddress := Address(*a)
+	underlyingAddress := *a
 
 	var buf bytes.Buffer
 	if err := gob.NewEncoder(&buf).Encode(&underlyingAddress); err != nil {
