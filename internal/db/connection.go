@@ -34,13 +34,15 @@ func ConnectDb() (*gorm.DB, error) {
 	return db, nil
 }
 
-// CreateDefaultAccount creates the default account.
+const defaultCurrencyAmount int64 = 10
+
+// CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
 		Address: &Address{},
-		Amount:  decimal.NewFromInt(1000),
+		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
 	}
-	tx := db.Create(&defaultAccount)
+	tx := db.FirstOrCreate(&defaultAccount)
 	if tx.Error != nil {
 		return tx.Error
 	}

@@ -28,6 +28,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	err = db.CreateDefaultAccount(dbConnection)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Db: dbConnection}}))
 
 	srv.AddTransport(transport.Options{})
