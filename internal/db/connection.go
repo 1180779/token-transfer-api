@@ -1,6 +1,7 @@
 package db
 
 import (
+	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
@@ -15,5 +16,34 @@ func ConnectDb() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	err = db.AutoMigrate(&Account{})
+	if err != nil {
+		sqlDB, err2 := db.DB()
+		if err2 != nil {
+			return nil, err2
+		}
+
+		err2 = sqlDB.Close()
+		if err2 != nil {
+			return nil, err2
+		}
+
+		return nil, err
+	}
+
 	return db, nil
+}
+
+// CreateDefaultAccount creates the default account.
+func CreateDefaultAccount(db *gorm.DB) error {
+	defaultAccount := Account{
+		Address: &Address{},
+		Amount:  decimal.NewFromInt(1000),
+	}
+	tx := db.Create(&defaultAccount)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
 }
