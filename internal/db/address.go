@@ -1,9 +1,7 @@
 package db
 
 import (
-	"bytes"
 	"database/sql/driver"
-	"encoding/gob"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,32 +19,25 @@ func (a *Address) Scan(src any) error {
 		return fmt.Errorf("scan: expected []byte from database, got %T", src)
 	}
 
-	if len(v) == 0 {
-		var zeroAdd Address
-		*a = zeroAdd
-		return nil
+	if len(v) != common.AddressLength {
+		return fmt.Errorf("scan: expected byte slice of length %d, got %d", common.AddressLength, len(v))
 	}
 
-	var z Address
-	if err := gob.NewDecoder(bytes.NewReader(v)).Decode(&z); err != nil {
-		return fmt.Errorf("can't decode Address from []byte: %w", err)
-	}
-	*a = z
+	copy(a[:], v)
 	return nil
 }
 
 func (a *Address) Value() (driver.Value, error) {
-	underlyingAddress := *a
-
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(&underlyingAddress); err != nil {
-		return nil, fmt.Errorf("can't encode Address to []byte: %w", err)
-	}
-	return buf.Bytes(), nil
+	return a[:], nil
 }
 
 func (*Address) DataType() string {
 	return "BYTEA"
+}
+
+func (a *Address) String() string {
+	tempAddress := common.Address(*a)
+	return tempAddress.String()
 }
 
 func HexToAddress(s string) *Address {
