@@ -34,7 +34,7 @@ func ConnectDb() (*gorm.DB, error) {
 	return db, nil
 }
 
-const defaultCurrencyAmount int64 = 10
+const defaultCurrencyAmount int64 = 1_000_000
 
 // CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
