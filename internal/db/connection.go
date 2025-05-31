@@ -42,7 +42,7 @@ func CreateDefaultAccount(db *gorm.DB) error {
 		Address: &Address{},
 		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
 	}
-	tx := db.FirstOrCreate(&defaultAccount)
+	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
 	if tx.Error != nil {
 		return tx.Error
 	}
