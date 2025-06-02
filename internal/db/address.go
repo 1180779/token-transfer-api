@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 	"github.com/ethereum/go-ethereum/common"
 	"reflect"
-	err "token-transfer-api/internal/errors"
+	errs "token-transfer-api/internal/errors"
 )
 
 const AddressLength = common.AddressLength
@@ -13,16 +13,16 @@ type Address common.Address
 
 func (a *Address) Scan(src any) error {
 	if src == nil {
-		return err.NilError{Name: "src"}
+		return errs.NilError{Name: "src"}
 	}
 
 	v, ok := src.([]byte)
 	if !ok {
-		return err.TypeError{ExpectedType: reflect.TypeOf([]byte{}), ActualType: reflect.TypeOf(src)}
+		return errs.TypeError{ExpectedType: reflect.TypeOf([]byte{}), ActualType: reflect.TypeOf(src)}
 	}
 
 	if len(v) != common.AddressLength {
-		return err.LengthError{ExpectedLength: common.AddressLength, ActualLength: len(v)}
+		return errs.LengthError{ExpectedLength: common.AddressLength, ActualLength: len(v)}
 	}
 
 	copy(a[:], v)
