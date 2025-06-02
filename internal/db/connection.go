@@ -1,6 +1,8 @@
 package db
 
 import (
+	"fmt"
+	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
@@ -15,5 +17,48 @@ func ConnectDb() (*gorm.DB, error) {
 		return nil, err
 	}
 
+	err = db.AutoMigrate(&Account{})
+	if err != nil {
+		sqlDB, err2 := db.DB()
+		if err2 != nil {
+			return nil, fmt.Errorf("migration failed (%w), and failed to get underlying *sql.DB (%w)", err, err2)
+		}
+
+		err2 = sqlDB.Close()
+		if err2 != nil {
+			return nil, fmt.Errorf("migration failed (%w), and failed to close database connection (%w)", err, err2)
+		}
+
+		return nil, err
+	}
+
 	return db, nil
+}
+
+func CloseDb(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	err = sqlDB.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+const defaultCurrencyAmount int64 = 1_000_000
+
+// CreateDefaultAccount creates the default account if it does not exist.
+func CreateDefaultAccount(db *gorm.DB) error {
+	defaultAccount := Account{
+		Address: Address{},
+		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
+	}
+	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+	return nil
 }
