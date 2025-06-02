@@ -13,7 +13,7 @@ func testAddressValue(t *testing.T, address *Address, expectedErrorType interfac
 	value, err := address.Value()
 	if expectedErrorType != nil {
 		assert.Error(t, err)
-		assert.IsType(t, err.Error(), expectedErrorType, "Error should be of type: %s", reflect.TypeOf(expectedErrorType))
+		assert.IsType(t, expectedErrorType, err, "Error should be of type: %s", reflect.TypeOf(expectedErrorType))
 	} else {
 		assert.NoError(t, err)
 
