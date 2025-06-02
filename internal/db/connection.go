@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -20,12 +21,12 @@ func ConnectDb() (*gorm.DB, error) {
 	if err != nil {
 		sqlDB, err2 := db.DB()
 		if err2 != nil {
-			return nil, err2
+			return nil, fmt.Errorf("migration failed (%w), and failed to get underlying *sql.DB (%w)", err, err2)
 		}
 
 		err2 = sqlDB.Close()
 		if err2 != nil {
-			return nil, err2
+			return nil, fmt.Errorf("migration failed (%w), and failed to close database connection (%w)", err, err2)
 		}
 
 		return nil, err
