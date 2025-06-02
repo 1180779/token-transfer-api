@@ -52,7 +52,7 @@ const defaultCurrencyAmount int64 = 1_000_000
 // CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
-		Address: &Address{},
+		Address: Address{},
 		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
 	}
 	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
