@@ -11,7 +11,7 @@ type LengthError struct {
 }
 
 func (e LengthError) Error() string {
-	return fmt.Sprintf("Expected length: %d got: %d", e.ExpectedLength, e.ActualLength)
+	return fmt.Sprintf("Expected length: %d, got: %d", e.ExpectedLength, e.ActualLength)
 }
 
 type TypeError struct {
