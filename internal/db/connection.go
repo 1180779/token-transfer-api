@@ -35,6 +35,18 @@ func ConnectDb() (*gorm.DB, error) {
 	return db, nil
 }
 
+func CloseDb(db *gorm.DB) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	err = sqlDB.Close()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 const defaultCurrencyAmount int64 = 1_000_000
 
 // CreateDefaultAccount creates the default account if it does not exist.

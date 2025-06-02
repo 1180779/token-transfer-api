@@ -30,14 +30,14 @@ func main() {
 
 	err = db.CreateDefaultAccount(dbConnection)
 	if err != nil {
+		err2 := db.CloseDb(dbConnection)
+		if err2 != nil {
+			log.Print(err2)
+		}
 		log.Fatal(err)
 	}
 	defer func() {
-		sqlDB, err := dbConnection.DB()
-		if err != nil {
-			log.Fatal(err)
-		}
-		err = sqlDB.Close()
+		err := db.CloseDb(dbConnection)
 		if err != nil {
 			log.Fatal(err)
 		}
