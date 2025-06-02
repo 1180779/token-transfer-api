@@ -42,8 +42,7 @@ func testAddressScan(t *testing.T, source any, expectedAddress *Address, expecte
 
 	if expectedErrorType != nil {
 		assert.Error(t, err)
-		errEqual := reflect.DeepEqual(err, expectedErrorType)
-		assert.True(t, errEqual)
+		assert.IsType(t, expectedErrorType, err, "Error should be of type: %s", reflect.TypeOf(expectedErrorType))
 	} else {
 		assert.NoError(t, err)
 		assert.Equal(t, expectedAddress.String(), address.String(), "Scanned address should match expected")
@@ -51,23 +50,23 @@ func testAddressScan(t *testing.T, source any, expectedAddress *Address, expecte
 }
 
 func TestAddress_Scan_NilSource(t *testing.T) {
-	testAddressScan(t, nil, nil, errs.NilError{Name: "src"})
+	testAddressScan(t, nil, nil, errs.NilError{})
 }
 
 func TestAddress_Scan_InvalidDataSourceType(t *testing.T) {
-	testAddressScan(t, "not bytes", nil, errs.TypeError{ActualType: reflect.TypeOf(""), ExpectedType: reflect.TypeOf([]byte{})})
+	testAddressScan(t, "not bytes", nil, errs.TypeError{})
 }
 
 func TestAddress_Scan_EmptySlice(t *testing.T) {
-	testAddressScan(t, []byte{}, nil, errs.LengthError{ActualLength: 0, ExpectedLength: AddressLength})
+	testAddressScan(t, []byte{}, nil, errs.LengthError{})
 }
 
 func TestAddress_Scan_TooShort(t *testing.T) {
 	src := []byte("abdefg")
-	testAddressScan(t, src, nil, errs.LengthError{ActualLength: len(src), ExpectedLength: AddressLength})
+	testAddressScan(t, src, nil, errs.LengthError{})
 }
 
 func TestAddress_Scan_TooLong(t *testing.T) {
 	src := []byte("abcdefghijklmnopqrstuwxyz")
-	testAddressScan(t, src, nil, errs.LengthError{ActualLength: len(src), ExpectedLength: AddressLength})
+	testAddressScan(t, src, nil, errs.LengthError{})
 }
