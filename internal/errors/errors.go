@@ -20,7 +20,7 @@ type TypeError struct {
 }
 
 func (e TypeError) Error() string {
-	return fmt.Sprintf("Expected type: %s, got: %s", e.ExpectedType.Name(), e.ActualType.Name())
+	return fmt.Sprintf("Expected type: %s, got: %s", e.ExpectedType.String(), e.ActualType.String())
 }
 
 type NilError struct {
