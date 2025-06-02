@@ -32,6 +32,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() {
+		sqlDB, err := dbConnection.DB()
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = sqlDB.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{Db: dbConnection}}))
 
