@@ -1,28 +1,18 @@
-# GraphQL schema example
-#
-# https://gqlgen.com/getting-started/
+# GraphQL schema
 
-type Todo {
-    id: ID!
-    text: String!
-    done: Boolean!
-    user: User!
+scalar Decimal
+scalar Address
+
+input Transfer {
+    from_address: Address!
+    to_address: Address!
+    amount: Decimal!
 }
 
-type User {
-    id: ID!
-    name: String!
-}
-
-type Query {
-    todos: [Todo!]!
-}
-
-input NewTodo {
-    text: String!
-    userId: String!
+type Sender {
+    balance: Decimal!
 }
 
 type Mutation {
-    createTodo(input: NewTodo!): Todo!
+    transfer(input: Transfer!): Sender!
 }

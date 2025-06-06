@@ -6,6 +6,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
+	"token-transfer-api/internal/address"
 )
 
 // ConnectDb returns pointer to gorm.DB which can be used to
@@ -52,7 +53,7 @@ const defaultCurrencyAmount int64 = 1_000_000
 // CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
-		Address: Address{},
+		Address: address.Address{},
 		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
 	}
 	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
