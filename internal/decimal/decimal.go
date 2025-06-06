@@ -67,7 +67,7 @@ func (d *Decimal) UnmarshalGQL(v interface{}) error {
 		return err
 	}
 
-	*d = Decimal(val)
+	*d = val
 	return nil
 }
 
