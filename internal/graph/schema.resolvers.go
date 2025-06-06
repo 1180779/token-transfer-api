@@ -6,21 +6,15 @@ package graph
 
 import (
 	"context"
-	"log"
+	"token-transfer-api/internal/decimal"
 	"token-transfer-api/internal/graph/model"
 )
 
 // Transfer is the resolver for the transfer field.
 func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (*model.Sender, error) {
-	defer func() {
-		r := recover()
-		if r != nil {
-			log.Println("Recovered in Transfer", r)
-		}
-	}()
-
-	log.Printf("not implemented: Transfer - transfer")
-	return nil, nil
+	// TODO: implement
+	var sender = model.Sender{Balance: decimal.NewFromInt64(1)}
+	return &sender, nil
 }
 
 // Mutation returns MutationResolver implementation.
