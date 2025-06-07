@@ -2,11 +2,11 @@ package db
 
 import (
 	"fmt"
-	"github.com/shopspring/decimal"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
 	"token-transfer-api/internal/address"
+	"token-transfer-api/internal/decimal"
 )
 
 // ConnectDb returns pointer to gorm.DB which can be used to
@@ -54,7 +54,7 @@ const defaultCurrencyAmount int64 = 1_000_000
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
 		Address: address.Address{},
-		Amount:  decimal.NewFromInt(defaultCurrencyAmount),
+		Amount:  decimal.NewFromInt64(defaultCurrencyAmount),
 	}
 	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
 	if tx.Error != nil {

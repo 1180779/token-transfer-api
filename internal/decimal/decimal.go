@@ -6,12 +6,22 @@ import (
 	"io"
 	"reflect"
 	"strconv"
-	errs "token-transfer-api/internal/errors"
+	"token-transfer-api/internal/errors/egeneric"
 )
 
 type Decimal dec.Decimal
 
 var Zero = Decimal(dec.Zero)
+
+func (d Decimal) String() string {
+	return (dec.Decimal(d)).String()
+}
+
+// Int64 returns the decimal as int64.
+// If the value cannot be represented in an int64 the result is undefined.
+func (d Decimal) Int64() int64 {
+	return (dec.Decimal(d)).BigInt().Int64()
+}
 
 func NewFromString(s string) (Decimal, error) {
 	d, err := dec.NewFromString(s)
@@ -38,7 +48,7 @@ func (d Decimal) Cmp(o Decimal) int {
 	return dec.Decimal(d).Cmp(dec.Decimal(o))
 }
 
-func (d Decimal) Equals(o Decimal) bool {
+func (d Decimal) Equal(o Decimal) bool {
 	return d.Cmp(o) == 0
 }
 
@@ -56,6 +66,10 @@ func (d Decimal) LessThan(o Decimal) bool {
 
 func (d Decimal) LessThanOrEqual(o Decimal) bool {
 	return d.Cmp(o) <= 0
+}
+
+func (d Decimal) IsZero() bool {
+	return d.Cmp(Zero) == 0
 }
 
 func (d Decimal) Add(o Decimal) Decimal {
@@ -89,7 +103,7 @@ func (d *Decimal) UnmarshalGQL(v interface{}) error {
 	case float64:
 		val = NewFromFloat64(v)
 	default:
-		return errs.TypeError{
+		return egeneric.TypeError{
 			ExpectedTypes: []reflect.Type{
 				reflect.TypeOf(""),
 				reflect.TypeOf(int64(0)),

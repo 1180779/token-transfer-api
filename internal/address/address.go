@@ -7,7 +7,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
-	errs "token-transfer-api/internal/errors"
+	"token-transfer-api/internal/errors/egeneric"
 )
 
 const AddressLength = common.AddressLength
@@ -16,16 +16,16 @@ type Address common.Address
 
 func (a *Address) Scan(src any) error {
 	if src == nil {
-		return errs.NilError{Name: "src"}
+		return egeneric.NilError{Name: "src"}
 	}
 
 	v, ok := src.([]byte)
 	if !ok {
-		return errs.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf([]byte{})}, ActualType: reflect.TypeOf(src)}
+		return egeneric.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf([]byte{})}, ActualType: reflect.TypeOf(src)}
 	}
 
 	if len(v) != common.AddressLength {
-		return errs.LengthError{ExpectedLength: common.AddressLength, ActualLength: len(v)}
+		return egeneric.LengthError{ExpectedLength: common.AddressLength, ActualLength: len(v)}
 	}
 
 	copy(a[:], v)
@@ -69,7 +69,7 @@ func (a Address) MarshalGQL(w io.Writer) {
 func (a *Address) UnmarshalGQL(v interface{}) error {
 	s, ok := v.(string)
 	if !ok {
-		return errs.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf("")}, ActualType: reflect.TypeOf(v)}
+		return egeneric.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf("")}, ActualType: reflect.TypeOf(v)}
 	}
 
 	if !common.IsHexAddress(s) {
