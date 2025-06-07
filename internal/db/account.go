@@ -1,8 +1,8 @@
 package db
 
 import (
-	"github.com/shopspring/decimal"
 	"token-transfer-api/internal/address"
+	"token-transfer-api/internal/decimal"
 )
 
 // Account represents a user's cryptocurrency account in the database.

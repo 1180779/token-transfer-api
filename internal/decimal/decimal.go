@@ -11,6 +11,8 @@ import (
 
 type Decimal dec.Decimal
 
+var Zero = Decimal(dec.Zero)
+
 func NewFromString(s string) (Decimal, error) {
 	d, err := dec.NewFromString(s)
 	if err != nil {
@@ -30,6 +32,38 @@ func NewFromFloat64(f float64) Decimal {
 	d := dec.NewFromFloat(f)
 	res := (Decimal)(d)
 	return res
+}
+
+func (d Decimal) Cmp(o Decimal) int {
+	return dec.Decimal(d).Cmp(dec.Decimal(o))
+}
+
+func (d Decimal) Equals(o Decimal) bool {
+	return d.Cmp(o) == 0
+}
+
+func (d Decimal) GreaterThan(o Decimal) bool {
+	return d.Cmp(o) > 0
+}
+
+func (d Decimal) GreaterThanOrEqual(o Decimal) bool {
+	return d.Cmp(o) >= 0
+}
+
+func (d Decimal) LessThan(o Decimal) bool {
+	return d.Cmp(o) < 0
+}
+
+func (d Decimal) LessThanOrEqual(o Decimal) bool {
+	return d.Cmp(o) <= 0
+}
+
+func (d Decimal) Add(o Decimal) Decimal {
+	return Decimal((dec.Decimal(d)).Add(dec.Decimal(o)))
+}
+
+func (d Decimal) Sub(o Decimal) Decimal {
+	return Decimal((dec.Decimal(d)).Div(dec.Decimal(o)))
 }
 
 // MarshalGQL implements the graphql.Marshaler interface (used by gqlgen).
