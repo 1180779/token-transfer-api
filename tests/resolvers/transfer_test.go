@@ -140,7 +140,7 @@ func (suite *testSuite) TestTransfer_InsufficientBalance() {
 
 	// assert
 	assert.Error(suite.T(), err, transferShouldFail)
-	assert.Nil(suite.T(), sender)
+	assert.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
 	assert.IsType(suite.T(), eresolvers.InsufficientBalanceError, err)
 
 	finalSenderBalance := getAccountBalance(suite, defaultAddress)
