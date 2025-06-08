@@ -44,6 +44,10 @@ func NewFromFloat64(f float64) Decimal {
 	return res
 }
 
+func (d Decimal) IsInteger() bool {
+	return (dec.Decimal(d)).IsInteger()
+}
+
 func (d Decimal) Cmp(o Decimal) int {
 	return dec.Decimal(d).Cmp(dec.Decimal(o))
 }

@@ -6,15 +6,126 @@ package graph
 
 import (
 	"context"
+	"errors"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+	"sort"
+	"token-transfer-api/internal/address"
+	"token-transfer-api/internal/db"
 	"token-transfer-api/internal/decimal"
+	"token-transfer-api/internal/errors/eresolvers"
 	"token-transfer-api/internal/graph/model"
 )
 
 // Transfer is the resolver for the transfer field.
 func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (*model.Sender, error) {
-	// TODO: implement
-	var sender = model.Sender{Balance: decimal.NewFromInt64(1)}
-	return &sender, nil
+	// do not allow negative transfers
+	if input.Amount.LessThan(decimal.Zero) {
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.NegativeTransferError
+	}
+
+	// only allow int values
+	if !input.Amount.IsInteger() {
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.NonIntegerTransferError
+	}
+
+	// Handle same address transfer
+	if input.FromAddress == input.ToAddress {
+		tx := r.Db.Begin()
+		if tx.Error != nil {
+			return &model.Sender{Balance: decimal.Zero}, eresolvers.BeginTransactionError
+		}
+
+		senderAccount := db.Account{}
+		err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("address = ?", input.FromAddress).
+			First(&senderAccount).Error
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressNotFoundError{Address: input.FromAddress}
+			}
+			tx.Rollback()
+			return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressRetrievalError{Address: input.FromAddress}
+		}
+
+		if senderAccount.Amount.LessThan(input.Amount) {
+			tx.Rollback()
+			return &model.Sender{Balance: decimal.Zero}, eresolvers.InsufficientBalanceError
+		}
+
+		tx.Commit()
+		return &model.Sender{Balance: senderAccount.Amount}, nil
+	}
+
+	// handle transfer between two different accounts
+	tx := r.Db.Begin()
+	if tx.Error != nil {
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.BeginTransactionError
+	}
+
+	var addressesToLock []string
+	addressesToLock = append(addressesToLock, input.FromAddress.Hex())
+	addressesToLock = append(addressesToLock, input.ToAddress.Hex())
+	sort.Strings(addressesToLock)
+
+	accounts := make(map[string]*db.Account)
+	for _, addr := range addressesToLock {
+		account := db.Account{}
+		var err error
+		if addr == input.FromAddress.Hex() {
+			// Sender account must exist, so use First
+			err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where("address = ?", addr).
+				First(&account).Error
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				tx.Rollback()
+				return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressNotFoundError{Address: input.FromAddress}
+			}
+		} else {
+			err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+				Where(db.Account{Address: address.FromHex(addr)}).
+				FirstOrCreate(&account).Error
+		}
+
+		if err != nil {
+			tx.Rollback()
+			return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressRetrievalError{Address: address.FromHex(addr)}
+		}
+		accounts[addr] = &account
+	}
+
+	senderAccount := accounts[input.FromAddress.Hex()]
+	receiverAccount := accounts[input.ToAddress.Hex()]
+
+	if senderAccount.Amount.LessThan(input.Amount) {
+		tx.Rollback()
+		return nil, eresolvers.InsufficientBalanceError
+	}
+
+	senderAccount.Amount = senderAccount.Amount.Sub(input.Amount)
+	receiverAccount.Amount = receiverAccount.Amount.Add(input.Amount)
+
+	err := tx.Model(senderAccount).Where("address = ?", senderAccount.Address).Update("Amount", senderAccount.Amount).Error
+	if err != nil {
+		tx.Rollback()
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressAmountUpdateError{Address: senderAccount.Address}
+	}
+
+	err = tx.Model(receiverAccount).
+		Where("address = ?", receiverAccount.Address).
+		Update("Amount", receiverAccount.Amount).Error
+	if err != nil {
+		tx.Rollback()
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressAmountUpdateError{Address: receiverAccount.Address}
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.CommitTransactionError
+	}
+
+	return &model.Sender{Balance: senderAccount.Amount}, nil
+
 }
 
 // Mutation returns MutationResolver implementation.
