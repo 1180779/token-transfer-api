@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"gorm.io/gorm"
 	"log"
 	"os"
@@ -23,6 +24,19 @@ var (
 	testDB       *gorm.DB
 	testResolver *graph.Resolver
 )
+
+type testSuite struct {
+	suite.Suite
+	mutationResolver graph.MutationResolver
+	ctx              context.Context
+}
+
+func (suite *testSuite) SetupTest() {
+	clearDBState(suite.T())
+
+	suite.mutationResolver = testResolver.Mutation()
+	suite.ctx = context.Background()
+}
 
 func TestMain(m *testing.M) {
 	if os.Getenv("DATABASE_URL") == "" {
@@ -62,29 +76,24 @@ func clearDBState(t *testing.T) {
 }
 
 // getAccountBalance fetches the balance of a given address.
-func getAccountBalance(t *testing.T, addr address.Address) decimal.Decimal {
-	t.Helper()
+func getAccountBalance(suite *testSuite, addr address.Address) decimal.Decimal {
+	suite.T().Helper()
 	var account = db.Account{Address: addr}
 	err := testDB.Where("address = ?", addr).FirstOrCreate(&account).Error
-	require.NoError(t, err, fmt.Sprintf("Failed to get balance for %s", addr.Hex()))
+	require.NoError(suite.T(), err, fmt.Sprintf("Failed to get balance for %s", addr.Hex()))
 	return account.Amount
 }
 
 // TestTransfer_SuccessfulTransfer tests a basic successful transfer.
-func TestTransfer_SuccessfulTransfer(t *testing.T) {
+func (suite *testSuite) TestTransfer_SuccessfulTransfer() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	defaultAddress := address.HexToAddress(db.DefaultAccountHex)
-	initialDefaultBalance := getAccountBalance(t, defaultAddress)
-	assert.Equal(t, initialDefaultBalance, decimal.NewFromInt64(db.DefaultCurrencyAmount))
+	initialDefaultBalance := getAccountBalance(suite, defaultAddress)
+	assert.Equal(suite.T(), initialDefaultBalance, decimal.NewFromInt64(db.DefaultCurrencyAmount))
 
 	recipientAddress := address.HexToAddress("0x1234567890123456789012345678901234567890")
-	recipientInitialBalance := getAccountBalance(t, recipientAddress)
-	assert.True(t, recipientInitialBalance.IsZero())
+	recipientInitialBalance := getAccountBalance(suite, recipientAddress)
+	assert.True(suite.T(), recipientInitialBalance.IsZero())
 
 	transferAmount := decimal.NewFromInt64(100)
 
@@ -95,32 +104,27 @@ func TestTransfer_SuccessfulTransfer(t *testing.T) {
 	}
 
 	// act
-	sender, err := mutationResolver.Transfer(ctx, input)
+	sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 	// assert
-	require.NoError(t, err, transferShouldSucceed)
-	require.NotNil(t, sender)
+	require.NoError(suite.T(), err, transferShouldSucceed)
+	require.NotNil(suite.T(), sender)
 
 	expectedSenderBalance := initialDefaultBalance.Sub(transferAmount)
-	assert.Equal(t, expectedSenderBalance, sender.Balance)
+	assert.Equal(suite.T(), expectedSenderBalance, sender.Balance)
 
-	finalSenderBalance := getAccountBalance(t, defaultAddress)
-	assert.Equal(t, expectedSenderBalance, finalSenderBalance)
+	finalSenderBalance := getAccountBalance(suite, defaultAddress)
+	assert.Equal(suite.T(), expectedSenderBalance, finalSenderBalance)
 
-	finalRecipientBalance := getAccountBalance(t, recipientAddress)
-	assert.Equal(t, transferAmount, finalRecipientBalance)
+	finalRecipientBalance := getAccountBalance(suite, recipientAddress)
+	assert.Equal(suite.T(), transferAmount, finalRecipientBalance)
 }
 
 // TestTransfer_InsufficientBalance tests the case where the sender has insufficient funds.
-func TestTransfer_InsufficientBalance(t *testing.T) {
+func (suite *testSuite) TestTransfer_InsufficientBalance() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	defaultAddress := address.HexToAddress(db.DefaultAccountHex)
-	initialDefaultBalance := getAccountBalance(t, defaultAddress)
+	initialDefaultBalance := getAccountBalance(suite, defaultAddress)
 
 	// Transfer an amount greater than the initial balance
 	transferAmount := initialDefaultBalance.Add(decimal.NewFromInt64(1))
@@ -132,24 +136,20 @@ func TestTransfer_InsufficientBalance(t *testing.T) {
 	}
 
 	// act
-	sender, err := mutationResolver.Transfer(ctx, input)
+	sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 	// assert
-	assert.Error(t, err, transferShouldFail)
-	assert.Nil(t, sender)
-	assert.IsType(t, eresolvers.InsufficientBalanceError, err)
+	assert.Error(suite.T(), err, transferShouldFail)
+	assert.Nil(suite.T(), sender)
+	assert.IsType(suite.T(), eresolvers.InsufficientBalanceError, err)
 
-	finalSenderBalance := getAccountBalance(t, defaultAddress)
-	assert.True(t, finalSenderBalance.Equal(initialDefaultBalance))
+	finalSenderBalance := getAccountBalance(suite, defaultAddress)
+	assert.True(suite.T(), finalSenderBalance.Equal(initialDefaultBalance))
 }
 
 // TestTransfer_NegativeAmount tests transferring a negative amount.
-func TestTransfer_NegativeAmount(t *testing.T) {
+func (suite *testSuite) TestTransfer_NegativeAmount() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
 	fromAddr := address.HexToAddress(db.DefaultAccountHex)
 	toAddr := address.HexToAddress("0x1111111111111111111111111111111111111111")
 
@@ -168,14 +168,14 @@ func TestTransfer_NegativeAmount(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		suite.T().Run(tc.name, func(t *testing.T) {
 			input := model.Transfer{
 				FromAddress: fromAddr,
 				ToAddress:   toAddr,
 				Amount:      tc.amount,
 			}
 			// act
-			sender, err := mutationResolver.Transfer(ctx, input)
+			sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 			// assert
 			assert.Error(t, err)
@@ -185,14 +185,13 @@ func TestTransfer_NegativeAmount(t *testing.T) {
 	}
 }
 
+func TestRunAllSuiteTests(t *testing.T) {
+	suite.Run(t, new(testSuite))
+}
+
 // TestTransfer_NonInteger tests transferring a non integer amount.
-func TestTransfer_NonInteger(t *testing.T) {
+func (suite *testSuite) TestTransfer_NonInteger() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	testAddress := address.HexToAddress("0x0123456789012345678901234567890123456789")
 	transferAmount := decimal.NewFromFloat64(150.5)
 
@@ -203,24 +202,19 @@ func TestTransfer_NonInteger(t *testing.T) {
 	}
 
 	// act
-	sender, err := mutationResolver.Transfer(ctx, input)
+	sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 	// assert
-	require.Error(t, err, transferShouldFail)
-	require.IsType(t, err, eresolvers.NonIntegerTransferError)
-	require.Equal(t, model.Sender{Balance: decimal.Zero}, *sender)
+	require.Error(suite.T(), err, transferShouldFail)
+	require.IsType(suite.T(), err, eresolvers.NonIntegerTransferError)
+	require.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
 }
 
 // TestTransfer_SelfTransfer tests transferring to the same address.
-func TestTransfer_SelfTransfer(t *testing.T) {
+func (suite *testSuite) TestTransfer_SelfTransfer() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	testAddress := address.HexToAddress(db.DefaultAccountHex)
-	initialBalance := getAccountBalance(t, testAddress)
+	initialBalance := getAccountBalance(suite, testAddress)
 	transferAmount := decimal.NewFromInt64(100)
 
 	input := model.Transfer{
@@ -230,34 +224,29 @@ func TestTransfer_SelfTransfer(t *testing.T) {
 	}
 
 	// act
-	sender, err := mutationResolver.Transfer(ctx, input)
+	sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 	// assert
-	require.NoError(t, err, transferShouldSucceed)
-	require.NotNil(t, sender)
+	require.NoError(suite.T(), err, transferShouldSucceed)
+	require.NotNil(suite.T(), sender)
 
-	assert.True(t, sender.Balance.Equal(initialBalance))
+	assert.True(suite.T(), sender.Balance.Equal(initialBalance))
 
-	finalBalance := getAccountBalance(t, testAddress)
-	assert.True(t, finalBalance.Equal(initialBalance))
+	finalBalance := getAccountBalance(suite, testAddress)
+	assert.True(suite.T(), finalBalance.Equal(initialBalance))
 }
 
 // TestTransfer_RaceCondition tests concurrent transfers to simulate race conditions.
-func TestTransfer_RaceCondition(t *testing.T) {
+func (suite *testSuite) TestTransfer_RaceCondition() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	walletAddress := address.HexToAddress(db.DefaultAccountHex)
 	err := testDB.Model(&db.Account{}).
 		Where("address = ?", walletAddress).
 		Update("amount", decimal.NewFromInt64(10)).Error
-	require.NoError(t, err, setupFailed)
+	require.NoError(suite.T(), err, setupFailed)
 
-	currentBalance := getAccountBalance(t, walletAddress)
-	assert.Equal(t, decimal.NewFromInt64(10), currentBalance)
+	currentBalance := getAccountBalance(suite, walletAddress)
+	assert.Equal(suite.T(), decimal.NewFromInt64(10), currentBalance)
 
 	transfers := []struct {
 		amount   int64
@@ -281,7 +270,7 @@ func TestTransfer_RaceCondition(t *testing.T) {
 			Address: address.FromHex(otherAddress),
 			Amount:  decimal.NewFromInt64(txData.amount),
 		}).Error
-		assert.NoError(t, err, setupFailed)
+		assert.NoError(suite.T(), err, setupFailed)
 	}
 
 	// act
@@ -297,7 +286,7 @@ func TestTransfer_RaceCondition(t *testing.T) {
 				Amount:      decimal.NewFromInt64(amount),
 			}
 
-			_, err = mutationResolver.Transfer(ctx, input)
+			_, err = suite.mutationResolver.Transfer(suite.ctx, input)
 			results <- err
 		}(i, txData.amount, txData.fromAddr, txData.toAddr)
 	}
@@ -313,42 +302,37 @@ func TestTransfer_RaceCondition(t *testing.T) {
 	}
 
 	// assert
-	finalBalanceInDB := getAccountBalance(t, walletAddress)
+	finalBalanceInDB := getAccountBalance(suite, walletAddress)
 
 	possibleFinalBalanceValues := []string{"0", "4", "7"}
 
 	balanceAchieved := false
 	for _, expectedValStr := range possibleFinalBalanceValues {
 		expectedDec, err := decimal.NewFromString(expectedValStr)
-		require.NoError(t, err)
+		require.NoError(suite.T(), err)
 		if finalBalanceInDB.Equal(expectedDec) {
 			balanceAchieved = true
 			break
 		}
 	}
 
-	assert.True(t, balanceAchieved, fmt.Sprintf("Final balance %s not among expected outcomes (0, 4, 7)", finalBalanceInDB.String()))
+	assert.True(suite.T(), balanceAchieved, fmt.Sprintf("Final balance %s not among expected outcomes (0, 4, 7)", finalBalanceInDB.String()))
 
 	insufficientBalanceErrorsCount := 0
 	for _, err := range errorsList {
 		if errors.Is(err, eresolvers.InsufficientBalanceError) {
 			insufficientBalanceErrorsCount++
 		} else if err != nil {
-			t.Errorf("Unexpected error during race condition test: %v", err)
+			suite.T().Errorf("Unexpected error during race condition test: %v", err)
 		}
 	}
-	assert.Contains(t, []int{0, 1}, insufficientBalanceErrorsCount, "Expected 0 or 1 insufficient balance errorsList")
-	t.Logf("race test final balance: %s, Insufficient errorsList: %d", finalBalanceInDB.String(), insufficientBalanceErrorsCount)
+	assert.Contains(suite.T(), []int{0, 1}, insufficientBalanceErrorsCount, "Expected 0 or 1 insufficient balance errorsList")
+	suite.T().Logf("race test final balance: %s, Insufficient errorsList: %d", finalBalanceInDB.String(), insufficientBalanceErrorsCount)
 }
 
 // TestTransfer_SenderNotFound tests transferring from a non-existent sender.
-func TestTransfer_SenderNotFound(t *testing.T) {
+func (suite *testSuite) TestTransfer_SenderNotFound() {
 	// assemble
-	clearDBState(t)
-
-	mutationResolver := testResolver.Mutation()
-	ctx := context.Background()
-
 	nonExistentAddress := address.HexToAddress("0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
 	toAddress := address.HexToAddress(db.DefaultAccountHex)
 
@@ -359,10 +343,10 @@ func TestTransfer_SenderNotFound(t *testing.T) {
 	}
 
 	// act
-	sender, err := mutationResolver.Transfer(ctx, input)
+	sender, err := suite.mutationResolver.Transfer(suite.ctx, input)
 
 	// assert
-	assert.Error(t, err, transferShouldFail)
-	assert.IsType(t, err, eresolvers.AddressNotFoundError{})
-	assert.Equal(t, model.Sender{Balance: decimal.Zero}, *sender)
+	assert.Error(suite.T(), err, transferShouldFail)
+	assert.IsType(suite.T(), err, eresolvers.AddressNotFoundError{})
+	assert.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
 }
