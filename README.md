@@ -147,12 +147,7 @@ mutation FailTransfer {
 }
 ```
 
-Of course! I've formatted the section you provided and expanded it slightly to include the best practices and alternative shell commands we discussed. This will make it much clearer and more helpful for all users.
-
-Here is the formatted and enhanced section, ready to be pasted into your `README.md`:
-
 ---
-
 ### Manual API Usage with `curl`
 
 You can also send requests directly from your command line using a tool like `curl`.
