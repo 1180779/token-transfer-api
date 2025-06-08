@@ -49,16 +49,17 @@ func CloseDb(db *gorm.DB) error {
 }
 
 const defaultCurrencyAmount int64 = 1_000_000
+const defaultAccountHex = "0x0000000000000000000000000000000000000000"
 
 // CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
-		Address: address.Address{},
+		Address: address.HexToAddress(defaultAccountHex),
 		Amount:  decimal.NewFromInt64(defaultCurrencyAmount),
 	}
-	tx := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount)
-	if tx.Error != nil {
-		return tx.Error
+	err := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount).Error
+	if err != nil {
+		return err
 	}
 
 	return nil

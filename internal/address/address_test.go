@@ -4,10 +4,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
-	errs "token-transfer-api/internal/errors"
+	"token-transfer-api/internal/errors/egeneric"
 )
 
-func testAddressValue(t *testing.T, address *Address, expectedErrorType interface{}) {
+func testAddressValue(t *testing.T, address Address, expectedErrorType interface{}) {
 	t.Helper()
 
 	value, err := address.Value()
@@ -17,12 +17,10 @@ func testAddressValue(t *testing.T, address *Address, expectedErrorType interfac
 	} else {
 		assert.NoError(t, err)
 
-		valBytes, ok := value.([]byte)
-		assert.True(t, ok, "Value should be a byte slice")
-		assert.Equal(t, AddressLength, len(valBytes), "Value should be the address length")
-
-		decoded := Address(valBytes).Hex()
-		assert.Equal(t, address.String(), decoded, "Decoded address should match original")
+		s, ok := value.(string)
+		assert.True(t, ok, "Value should be a string")
+		assert.Equal(t, AddressHexLength, len(s), "Value should be the address hex length")
+		assert.Equal(t, address.String(), s, "Decoded address should match original")
 	}
 }
 
@@ -50,23 +48,23 @@ func testAddressScan(t *testing.T, source any, expectedAddress *Address, expecte
 }
 
 func TestAddress_Scan_NilSource(t *testing.T) {
-	testAddressScan(t, nil, nil, errs.NilError{})
+	testAddressScan(t, nil, nil, egeneric.NilError{})
 }
 
 func TestAddress_Scan_InvalidDataSourceType(t *testing.T) {
-	testAddressScan(t, "not bytes", nil, errs.TypeError{})
+	testAddressScan(t, []byte{}, nil, egeneric.TypeError{})
 }
 
-func TestAddress_Scan_EmptySlice(t *testing.T) {
-	testAddressScan(t, []byte{}, nil, errs.LengthError{})
+func TestAddress_Scan_EmptyString(t *testing.T) {
+	testAddressScan(t, "", nil, egeneric.LengthError{})
 }
 
 func TestAddress_Scan_TooShort(t *testing.T) {
-	src := []byte("abdefg")
-	testAddressScan(t, src, nil, errs.LengthError{})
+	src := "abdefg"
+	testAddressScan(t, src, nil, egeneric.LengthError{})
 }
 
 func TestAddress_Scan_TooLong(t *testing.T) {
-	src := []byte("abcdefghijklmnopqrstuwxyz")
-	testAddressScan(t, src, nil, errs.LengthError{})
+	src := "abcdefghijklmnopqrstuwxyzABCDEFGHIJKLMNOPQRSTUWXYZ"
+	testAddressScan(t, src, nil, egeneric.LengthError{})
 }

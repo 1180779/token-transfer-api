@@ -11,6 +11,7 @@ import (
 )
 
 const AddressLength = common.AddressLength
+const AddressHexLength = AddressLength*2 + 2
 
 type Address common.Address
 
@@ -19,39 +20,41 @@ func (a *Address) Scan(src any) error {
 		return egeneric.NilError{Name: "src"}
 	}
 
-	v, ok := src.([]byte)
+	s, ok := src.(string)
 	if !ok {
-		return egeneric.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf([]byte{})}, ActualType: reflect.TypeOf(src)}
+		return egeneric.TypeError{ExpectedTypes: []reflect.Type{reflect.TypeOf("")}, ActualType: reflect.TypeOf(src)}
 	}
 
-	if len(v) != common.AddressLength {
-		return egeneric.LengthError{ExpectedLength: common.AddressLength, ActualLength: len(v)}
+	if len(s) != AddressHexLength {
+		return egeneric.LengthError{ExpectedLength: AddressHexLength, ActualLength: len(s)}
 	}
 
-	copy(a[:], v)
+	*a = FromHex(s)
 	return nil
 }
 
 func (a *Address) Value() (driver.Value, error) {
-	return a[:], nil
+	return a.Hex(), nil
 }
 
 func (Address) DataType() string {
-	return "BYTEA"
+	return "STRING"
 }
 
 func (a Address) String() string {
-	tempAddress := common.Address(a)
-	return tempAddress.String()
+	return a.Hex()
+}
+
+func FromHex(s string) Address {
+	return Address(common.FromHex(s))
 }
 
 func (a Address) Hex() string {
 	return common.Address(a).Hex()
 }
 
-func HexToAddress(s string) *Address {
-	tempAddress := Address(common.HexToAddress(s))
-	return &tempAddress
+func HexToAddress(s string) Address {
+	return Address(common.HexToAddress(s))
 }
 
 // MarshalGQL implements the graphql.Marshaler interface for the Address type.
