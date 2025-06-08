@@ -13,6 +13,10 @@ type Decimal dec.Decimal
 
 var Zero = Decimal(dec.Zero)
 
+func (Decimal) GormDataType() string {
+	return "numeric(78,0)"
+}
+
 func (d Decimal) String() string {
 	return (dec.Decimal(d)).String()
 }

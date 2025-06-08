@@ -37,8 +37,8 @@ func (a *Address) Value() (driver.Value, error) {
 	return a.Hex(), nil
 }
 
-func (Address) DataType() string {
-	return "STRING"
+func (Address) GormDataType() string {
+	return "varchar(42)"
 }
 
 func (a Address) String() string {
