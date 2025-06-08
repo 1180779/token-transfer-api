@@ -394,14 +394,11 @@ func (ec *executionContext) _Mutation_transfer(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.Sender)
 	fc.Result = res
-	return ec.marshalNSender2ᚖtokenᚑtransferᚑapiᚋinternalᚋgraphᚋmodelᚐSender(ctx, field.Selections, res)
+	return ec.marshalOSender2ᚖtokenᚑtransferᚑapiᚋinternalᚋgraphᚋmodelᚐSender(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_transfer(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2630,9 +2627,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_transfer(ctx, field)
 			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3116,20 +3110,6 @@ func (ec *executionContext) marshalNDecimal2tokenᚑtransferᚑapiᚋinternalᚋ
 	return v
 }
 
-func (ec *executionContext) marshalNSender2tokenᚑtransferᚑapiᚋinternalᚋgraphᚋmodelᚐSender(ctx context.Context, sel ast.SelectionSet, v model.Sender) graphql.Marshaler {
-	return ec._Sender(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNSender2ᚖtokenᚑtransferᚑapiᚋinternalᚋgraphᚋmodelᚐSender(ctx context.Context, sel ast.SelectionSet, v *model.Sender) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._Sender(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3432,6 +3412,13 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOSender2ᚖtokenᚑtransferᚑapiᚋinternalᚋgraphᚋmodelᚐSender(ctx context.Context, sel ast.SelectionSet, v *model.Sender) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Sender(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

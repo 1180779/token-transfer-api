@@ -140,7 +140,7 @@ func (suite *testSuite) TestTransfer_InsufficientBalance() {
 
 	// assert
 	assert.Error(suite.T(), err, transferShouldFail)
-	assert.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
+	assert.Nil(suite.T(), sender)
 	assert.IsType(suite.T(), eresolvers.InsufficientBalanceError, err)
 
 	finalSenderBalance := getAccountBalance(suite, defaultAddress)
@@ -180,7 +180,7 @@ func (suite *testSuite) TestTransfer_NegativeAmount() {
 			// assert
 			assert.Error(t, err)
 			assert.IsType(t, eresolvers.NegativeTransferError, err)
-			assert.Equal(t, model.Sender{Balance: decimal.Zero}, *sender)
+			assert.Nil(t, sender)
 		})
 	}
 }
@@ -207,7 +207,7 @@ func (suite *testSuite) TestTransfer_NonInteger() {
 	// assert
 	require.Error(suite.T(), err, transferShouldFail)
 	require.IsType(suite.T(), eresolvers.NonIntegerTransferError, err)
-	require.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
+	require.Nil(suite.T(), sender)
 }
 
 // TestTransfer_SelfTransfer tests transferring to the same address.
@@ -348,5 +348,5 @@ func (suite *testSuite) TestTransfer_SenderNotFound() {
 	// assert
 	assert.Error(suite.T(), err, transferShouldFail)
 	assert.IsType(suite.T(), err, eresolvers.AddressNotFoundError{})
-	assert.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
+	assert.Nil(suite.T(), sender)
 }
