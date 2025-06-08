@@ -15,15 +15,15 @@ jobs:
   build-go-and-docker:
     runs-on: ubuntu-latest
     env:
-      DATABASE_URL: "postgres://user:password@db:5432/mydatabase?sslmode=disable"
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
 
-      DATABASE_TEST_URL: "postgres://test_user:test_password@test-db:5432/token_transfer_test_db?sslmode=disable"
-      POSTGRES_TEST_USER: test_user
-      POSTGRES_TEST_PASSWORD: test_password
-      POSTGRES_TEST_DB: token_transfer_test_db
+      DATABASE_TEST_URL: ${{ secrets.DATABASE_TEST_URL }}
+      POSTGRES_TEST_USER: ${{ secrets.POSTGRES_TEST_USER }}
+      POSTGRES_TEST_PASSWORD: ${{ secrets.POSTGRES_TEST_PASSWORD }}
+      POSTGRES_TEST_DB: ${{ secrets.POSTGRES_TEST_DB }}
 
     steps:
       - name: Checkout code
