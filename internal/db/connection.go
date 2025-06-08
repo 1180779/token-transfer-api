@@ -12,7 +12,7 @@ import (
 	"token-transfer-api/internal/decimal"
 )
 
-const useLogger = true
+const useLogger = false
 
 // ConnectDb returns pointer to gorm.DB which can be used to
 // interact with the database. Applies migrations.
@@ -24,10 +24,10 @@ func ConnectDb() (*gorm.DB, error) {
 		newLogger = logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags), // IO writer
 			logger.Config{
-				SlowThreshold:             time.Second, // Slow SQL threshold
-				LogLevel:                  logger.Info, // Log level
-				IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound
-				Colorful:                  true,        // Disable color
+				SlowThreshold:             time.Second,
+				LogLevel:                  logger.Info,
+				IgnoreRecordNotFoundError: true,
+				Colorful:                  true,
 			},
 		)
 	} else {
