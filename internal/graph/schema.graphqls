@@ -14,5 +14,5 @@ type Sender {
 }
 
 type Mutation {
-    transfer(input: Transfer!): Sender!
+    transfer(input: Transfer!): Sender
 }
