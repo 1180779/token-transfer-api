@@ -1,4 +1,4 @@
-package errors
+package egeneric
 
 import (
 	"fmt"
@@ -15,12 +15,17 @@ func (e LengthError) Error() string {
 }
 
 type TypeError struct {
-	ExpectedType reflect.Type
-	ActualType   reflect.Type
+	ExpectedTypes []reflect.Type
+	ActualType    reflect.Type
 }
 
 func (e TypeError) Error() string {
-	return fmt.Sprintf("Expected type: %s, got: %s", e.ExpectedType.String(), e.ActualType.String())
+	var msg = "Expected one of the following types: "
+	for _, t := range e.ExpectedTypes {
+		msg += "'" + t.String() + "'; "
+	}
+	msg += "got: " + e.ActualType.String()
+	return msg
 }
 
 type NilError struct {
