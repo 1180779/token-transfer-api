@@ -83,7 +83,7 @@ func main() {
 
 	select {
 	case err := <-serverErrors:
-		log.Printf("server error: %w", err)
+		log.Printf("server error: %v", err)
 	case sig := <-quit:
 		log.Printf("Shutdown signal %q received, starting shutdown...", sig)
 	}
@@ -92,7 +92,7 @@ func main() {
 	defer cancel()
 
 	if err := httpServer.Shutdown(ctx); err != nil {
-		log.Fatalf("server shutdown failed: %w", err)
+		log.Fatalf("server shutdown failed: %v", err)
 	}
 
 	log.Println("Server exiting.")
