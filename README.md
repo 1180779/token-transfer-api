@@ -147,6 +147,50 @@ mutation FailTransfer {
 }
 ```
 
+Of course! I've formatted the section you provided and expanded it slightly to include the best practices and alternative shell commands we discussed. This will make it much clearer and more helpful for all users.
+
+Here is the formatted and enhanced section, ready to be pasted into your `README.md`:
+
+---
+
+### Manual API Usage with `curl`
+
+You can also send requests directly from your command line using a tool like `curl`.
+
+#### Recommended Method: Using a Data File
+
+The most reliable way to send a `curl` request is to save the JSON payload to a file. This avoids issues with how different command-line shells handle quotes and special characters.
+
+1.  Create a file named `payload.json`:
+
+    ```json
+    {
+      "query": "mutation TransferTokens($input: Transfer!) { transfer(input: $input) { balance } }",
+      "variables": {
+        "input": {
+          "from_address": "0x0000000000000000000000000000000000000000",
+          "to_address": "0xabcdef1234567890abcdef1234567890abcdef12",
+          "amount": "500"
+        }
+      }
+    }
+    ```
+
+2.  Execute the request from your terminal:
+
+    *   **On Linux, macOS or Git Bash:**
+        ```bash
+        curl -X POST -H "Content-Type: application/json" --data @payload.json http://localhost:8080/query
+        ```
+
+    *   **On Windows PowerShell:**
+        ```powershell
+        $payload = Get-Content -Raw -Path .\payload.json
+        Invoke-WebRequest -Uri http://localhost:8080/query -Method POST -ContentType "application/json" -Body $payload
+        ```
+
+---
+
 ## ✅ Running Tests
 
 To run the entire test suite, including the race condition tests, use the `tester` service defined in `docker-compose.yml`. This ensures the tests run in an isolated environment with a dedicated test database.
