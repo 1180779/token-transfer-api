@@ -4,16 +4,37 @@ import (
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
+	"log"
 	"os"
+	"time"
 	"token-transfer-api/internal/address"
 	"token-transfer-api/internal/decimal"
 )
+
+const useLogger = true
 
 // ConnectDb returns pointer to gorm.DB which can be used to
 // interact with the database. Applies migrations.
 func ConnectDb() (*gorm.DB, error) {
 	dsn := os.Getenv("DATABASE_URL")
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+
+	var newLogger logger.Interface
+	if useLogger {
+		newLogger = logger.New(
+			log.New(os.Stdout, "\r\n", log.LstdFlags), // IO writer
+			logger.Config{
+				SlowThreshold:             time.Second, // Slow SQL threshold
+				LogLevel:                  logger.Info, // Log level
+				IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound
+				Colorful:                  true,        // Disable color
+			},
+		)
+	} else {
+		newLogger = logger.Discard
+	}
+
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{Logger: newLogger})
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +69,17 @@ func CloseDb(db *gorm.DB) error {
 	return nil
 }
 
-const defaultCurrencyAmount int64 = 1_000_000
-const defaultAccountHex = "0x0000000000000000000000000000000000000000"
+const DefaultCurrencyAmount int64 = 1_000_000
+const DefaultAccountHex = "0x0000000000000000000000000000000000000000"
 
 // CreateDefaultAccount creates the default account if it does not exist.
 func CreateDefaultAccount(db *gorm.DB) error {
 	defaultAccount := Account{
-		Address: address.HexToAddress(defaultAccountHex),
-		Amount:  decimal.NewFromInt64(defaultCurrencyAmount),
+		Address: address.HexToAddress(DefaultAccountHex),
+		Amount:  decimal.NewFromInt64(DefaultCurrencyAmount),
 	}
-	err := db.Where(Account{Address: defaultAccount.Address}).FirstOrCreate(&defaultAccount).Error
+	err := db.Where("address = ?", defaultAccount.Address).
+		FirstOrCreate(&defaultAccount).Error
 	if err != nil {
 		return err
 	}
