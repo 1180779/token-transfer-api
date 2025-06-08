@@ -13,6 +13,15 @@ type Decimal dec.Decimal
 
 var Zero = Decimal(dec.Zero)
 
+const (
+	NumericPrecision = 78
+	NumericScale     = 0
+)
+
+func (Decimal) GormDataType() string {
+	return fmt.Sprintf("numeric(%d,%d)", NumericPrecision, NumericScale)
+}
+
 func (d Decimal) String() string {
 	return (dec.Decimal(d)).String()
 }
