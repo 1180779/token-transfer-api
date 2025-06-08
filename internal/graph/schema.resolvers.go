@@ -7,33 +7,34 @@ package graph
 import (
 	"context"
 	"errors"
-	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"sort"
 	"token-transfer-api/internal/address"
 	"token-transfer-api/internal/db"
 	"token-transfer-api/internal/decimal"
 	"token-transfer-api/internal/errors/eresolvers"
 	"token-transfer-api/internal/graph/model"
+
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Transfer is the resolver for the transfer field.
 func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (*model.Sender, error) {
 	// do not allow negative transfers
 	if input.Amount.LessThan(decimal.Zero) {
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.NegativeTransferError
+		return nil, eresolvers.NegativeTransferError
 	}
 
 	// only allow int values
 	if !input.Amount.IsInteger() {
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.NonIntegerTransferError
+		return nil, eresolvers.NonIntegerTransferError
 	}
 
 	// Handle same address transfer
 	if input.FromAddress == input.ToAddress {
 		tx := r.Db.Begin()
 		if tx.Error != nil {
-			return &model.Sender{Balance: decimal.Zero}, eresolvers.BeginTransactionError
+			return nil, eresolvers.BeginTransactionError
 		}
 
 		senderAccount := db.Account{}
@@ -42,15 +43,15 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 			First(&senderAccount).Error
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressNotFoundError{Address: input.FromAddress}
+				return nil, eresolvers.AddressNotFoundError{Address: input.FromAddress}
 			}
 			tx.Rollback()
-			return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressRetrievalError{Address: input.FromAddress}
+			return nil, eresolvers.AddressRetrievalError{Address: input.FromAddress}
 		}
 
 		if senderAccount.Amount.LessThan(input.Amount) {
 			tx.Rollback()
-			return &model.Sender{Balance: decimal.Zero}, eresolvers.InsufficientBalanceError
+			return nil, eresolvers.InsufficientBalanceError
 		}
 
 		tx.Commit()
@@ -60,7 +61,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 	// handle transfer between two different accounts
 	tx := r.Db.Begin()
 	if tx.Error != nil {
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.BeginTransactionError
+		return nil, eresolvers.BeginTransactionError
 	}
 
 	var addressesToLock []string
@@ -79,7 +80,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				First(&account).Error
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				tx.Rollback()
-				return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressNotFoundError{Address: input.FromAddress}
+				return nil, eresolvers.AddressNotFoundError{Address: input.FromAddress}
 			}
 		} else {
 			err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -89,7 +90,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 
 		if err != nil {
 			tx.Rollback()
-			return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressRetrievalError{Address: address.FromHex(addr)}
+			return nil, eresolvers.AddressRetrievalError{Address: address.FromHex(addr)}
 		}
 		accounts[addr] = &account
 	}
@@ -99,7 +100,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 
 	if senderAccount.Amount.LessThan(input.Amount) {
 		tx.Rollback()
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.InsufficientBalanceError
+		return nil, eresolvers.InsufficientBalanceError
 	}
 
 	senderAccount.Amount = senderAccount.Amount.Sub(input.Amount)
@@ -108,7 +109,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 	err := tx.Model(senderAccount).Where("address = ?", senderAccount.Address).Update("Amount", senderAccount.Amount).Error
 	if err != nil {
 		tx.Rollback()
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressAmountUpdateError{Address: senderAccount.Address}
+		return nil, eresolvers.AddressAmountUpdateError{Address: senderAccount.Address}
 	}
 
 	err = tx.Model(receiverAccount).
@@ -116,16 +117,15 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 		Update("Amount", receiverAccount.Amount).Error
 	if err != nil {
 		tx.Rollback()
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.AddressAmountUpdateError{Address: receiverAccount.Address}
+		return nil, eresolvers.AddressAmountUpdateError{Address: receiverAccount.Address}
 	}
 
 	err = tx.Commit().Error
 	if err != nil {
-		return &model.Sender{Balance: decimal.Zero}, eresolvers.CommitTransactionError
+		return nil, eresolvers.CommitTransactionError
 	}
 
 	return &model.Sender{Balance: senderAccount.Amount}, nil
-
 }
 
 // Mutation returns MutationResolver implementation.
