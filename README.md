@@ -143,7 +143,9 @@ mutation FailTransfer {
       ]
     }
   ],
-  "data": null
+  "data": {
+    "transfer": null
+  }
 }
 ```
 
