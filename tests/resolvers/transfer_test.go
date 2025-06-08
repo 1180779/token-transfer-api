@@ -179,8 +179,8 @@ func (suite *testSuite) TestTransfer_NegativeAmount() {
 
 			// assert
 			assert.Error(t, err)
-			assert.IsType(t, err, eresolvers.NegativeTransferError)
-			assert.Equal(t, *sender, model.Sender{Balance: decimal.Zero}, "")
+			assert.IsType(t, eresolvers.NegativeTransferError, err)
+			assert.Equal(t, model.Sender{Balance: decimal.Zero}, *sender)
 		})
 	}
 }
@@ -206,7 +206,7 @@ func (suite *testSuite) TestTransfer_NonInteger() {
 
 	// assert
 	require.Error(suite.T(), err, transferShouldFail)
-	require.IsType(suite.T(), err, eresolvers.NonIntegerTransferError)
+	require.IsType(suite.T(), eresolvers.NonIntegerTransferError, err)
 	require.Equal(suite.T(), model.Sender{Balance: decimal.Zero}, *sender)
 }
 

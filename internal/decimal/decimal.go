@@ -89,7 +89,7 @@ func (d Decimal) Sub(o Decimal) Decimal {
 func (d Decimal) MarshalGQL(w io.Writer) {
 	_, err := w.Write([]byte(strconv.Quote((dec.Decimal(d)).String())))
 	if err != nil {
-		panic(fmt.Errorf("failed to marshal Decimal to GraphQL: %w\", ", err))
+		panic(fmt.Errorf("failed to marshal Decimal to GraphQL: %w", err))
 	}
 }
 

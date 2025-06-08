@@ -99,7 +99,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 
 	if senderAccount.Amount.LessThan(input.Amount) {
 		tx.Rollback()
-		return nil, eresolvers.InsufficientBalanceError
+		return &model.Sender{Balance: decimal.Zero}, eresolvers.InsufficientBalanceError
 	}
 
 	senderAccount.Amount = senderAccount.Amount.Sub(input.Amount)
