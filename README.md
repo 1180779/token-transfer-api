@@ -205,4 +205,4 @@ To handle concurrent transfers safely, this API employs pessimistic locking at t
 
 ### Data Types
 *   **`address.Address`**: A custom type that wraps `Address` from `ethereum/go-ethereum/common` for Ethereum-style addresses to ensure format validation and type safety.
-*   **`decimal.Decimal`**: A custom type that wraps `shopspring/decimal` to handle monetary values with arbitrary precision, avoiding floating-point inaccuracies. All transfer amounts are validated to be positive integers.
+*   **`decimal.Decimal`**: A custom type that wraps `shopspring/decimal` to handle monetary values with arbitrary precision, avoiding floating-point inaccuracies. All transfer amounts are validated to be non-negative integers.
