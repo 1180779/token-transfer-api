@@ -1,0 +1,18 @@
+# GraphQL schema
+
+scalar Decimal
+scalar Address
+
+input Transfer {
+    from_address: Address!
+    to_address: Address!
+    amount: Decimal!
+}
+
+type Sender {
+    balance: Decimal!
+}
+
+type Mutation {
+    transfer(input: Transfer!): Sender
+}
