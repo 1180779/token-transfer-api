@@ -3,7 +3,7 @@ LABEL authors="Radosław Głasek <01180779@pw.edu.pl>"
 
 WORKDIR /app
 
-COPY go.mod server.go ./
+COPY go.mod go.sum server.go ./
 RUN go mod download
 
 COPY . .
