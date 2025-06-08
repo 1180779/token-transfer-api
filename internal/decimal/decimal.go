@@ -77,7 +77,7 @@ func (d Decimal) Add(o Decimal) Decimal {
 }
 
 func (d Decimal) Sub(o Decimal) Decimal {
-	return Decimal((dec.Decimal(d)).Div(dec.Decimal(o)))
+	return Decimal((dec.Decimal(d)).Sub(dec.Decimal(o)))
 }
 
 // MarshalGQL implements the graphql.Marshaler interface (used by gqlgen).
