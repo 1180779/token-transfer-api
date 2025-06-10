@@ -97,7 +97,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				First(&account).Error
 			if err != nil {
 				tx.Rollback()
-				return nil, eresolvers.AddressNotFoundError{Address: address.FromHex(addr)}
+				return nil, eresolvers.AddressRetrievalError{Address: address.FromHex(addr)}
 			}
 		}
 		accounts[addr] = &account
