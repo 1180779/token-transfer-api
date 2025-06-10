@@ -83,14 +83,21 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				return nil, eresolvers.AddressNotFoundError{Address: input.FromAddress}
 			}
 		} else {
+			err := tx.Clauses(clause.OnConflict{
+				Columns:   []clause.Column{{Name: "address"}},
+				DoNothing: true,
+			}).Create(&db.Account{Address: address.FromHex(addr), Amount: decimal.Zero}).Error
+			if err != nil {
+				return nil, eresolvers.AddressCreationError{Address: address.FromHex(addr)}
+			}
+
 			err = tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 				Where(db.Account{Address: address.FromHex(addr)}).
-				FirstOrCreate(&account).Error
-		}
-
-		if err != nil {
-			tx.Rollback()
-			return nil, eresolvers.AddressRetrievalError{Address: address.FromHex(addr)}
+				First(&account).Error
+			if err != nil {
+				tx.Rollback()
+				return nil, err
+			}
 		}
 		accounts[addr] = &account
 	}

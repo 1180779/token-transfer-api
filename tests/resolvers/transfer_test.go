@@ -330,6 +330,78 @@ func (suite *testSuite) TestTransfer_RaceCondition() {
 	suite.T().Logf("race test final balance: %s, Insufficient errorsList: %d", finalBalanceInDB.String(), insufficientBalanceErrorsCount)
 }
 
+// TestTransfer_FirstOrCreateRaceCondition tests concurrent transfers to simulate FirstOrCreate race condition.
+func (suite *testSuite) TestTransfer_FirstOrCreateRaceCondition() {
+	// assemble
+	transfers := []struct {
+		amount   int64
+		fromAddr string
+		toAddr   string
+	}{
+		{amount: 1, fromAddr: db.DefaultAccountHex, toAddr: "0x2222222222222222222222222222222222222222"},
+		{amount: 1, fromAddr: "0x3333333333333333333333333333333333333333", toAddr: "0x2222222222222222222222222222222222222222"},
+	}
+
+	// act
+	foundError := false
+	const (
+		repeat   = 10
+		logEvery = 5
+	)
+	suite.T().Logf("Running: %5d times", repeat)
+	for k := range repeat {
+		clearDBState(suite.T())
+
+		// create the 0x333 account
+		err := testDB.FirstOrCreate(&db.Account{
+			Address: address.FromHex("0x3333333333333333333333333333333333333333"),
+			Amount:  decimal.NewFromInt64(100),
+		}).Error
+		assert.NoError(suite.T(), err, setupFailed)
+
+		res := testDB.Where("address = ?", address.FromHex("0x2222222222222222222222222222222222222222")).First(&db.Account{})
+		assert.NotNil(suite.T(), res.Error)
+
+		var wg sync.WaitGroup
+		results := make(chan error, len(transfers))
+		for i, txData := range transfers {
+			wg.Add(1)
+			go func(idx int, amount int64, fromAddr string, toAddr string) {
+				defer wg.Done()
+				input := model.Transfer{
+					FromAddress: address.FromHex(fromAddr),
+					ToAddress:   address.FromHex(toAddr),
+					Amount:      decimal.NewFromInt64(amount),
+				}
+
+				_, err := suite.mutationResolver.Transfer(suite.ctx, input)
+				results <- err
+			}(i, txData.amount, txData.fromAddr, txData.toAddr)
+		}
+
+		wg.Wait()
+		close(results)
+
+		// assert
+		for err := range results {
+			if err == nil {
+				continue
+			}
+			foundError = true
+		}
+
+		if foundError {
+			break
+		}
+
+		if (k+1)%logEvery == 0 {
+			suite.T().Logf("Done: %5d/%5d", k+1, repeat)
+		}
+	}
+
+	assert.False(suite.T(), foundError)
+}
+
 // TestTransfer_SenderNotFound tests transferring from a non-existent sender.
 func (suite *testSuite) TestTransfer_SenderNotFound() {
 	// assemble
