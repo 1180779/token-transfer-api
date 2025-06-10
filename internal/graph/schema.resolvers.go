@@ -88,6 +88,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				DoNothing: true,
 			}).Create(&db.Account{Address: address.FromHex(addr), Amount: decimal.Zero}).Error
 			if err != nil {
+				tx.Rollback()
 				return nil, eresolvers.AddressCreationError{Address: address.FromHex(addr)}
 			}
 
