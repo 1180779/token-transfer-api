@@ -83,7 +83,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				return nil, eresolvers.AddressNotFoundError{Address: input.FromAddress}
 			}
 		} else {
-			err := tx.Clauses(clause.OnConflict{
+			err = tx.Clauses(clause.OnConflict{
 				Columns:   []clause.Column{{Name: "address"}},
 				DoNothing: true,
 			}).Create(&db.Account{Address: address.FromHex(addr), Amount: decimal.Zero}).Error
@@ -96,7 +96,7 @@ func (r *mutationResolver) Transfer(ctx context.Context, input model.Transfer) (
 				First(&account).Error
 			if err != nil {
 				tx.Rollback()
-				return nil, err
+				return nil, eresolvers.AddressNotFoundError{Address: address.FromHex(addr)}
 			}
 		}
 		accounts[addr] = &account
