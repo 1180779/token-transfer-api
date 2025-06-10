@@ -258,20 +258,12 @@ func (suite *testSuite) TestTransfer_RaceCondition() {
 		{amount: 7, fromAddr: db.DefaultAccountHex, toAddr: "0x3333333333333333333333333333333333333333"},
 	}
 
-	// create the other accounts
-	for _, txData := range transfers {
-		var otherAddress string
-		if txData.fromAddr != db.DefaultAccountHex {
-			otherAddress = txData.fromAddr
-		} else {
-			otherAddress = txData.toAddr
-		}
-		err := testDB.FirstOrCreate(&db.Account{
-			Address: address.FromHex(otherAddress),
-			Amount:  decimal.NewFromInt64(txData.amount),
-		}).Error
-		assert.NoError(suite.T(), err, setupFailed)
-	}
+	// create the 0x1111111111111111111111111111111111111111 account
+	err = testDB.FirstOrCreate(&db.Account{
+		Address: address.FromHex("0x1111111111111111111111111111111111111111"),
+		Amount:  decimal.NewFromInt64(1),
+	}).Error
+	assert.NoError(suite.T(), err, setupFailed)
 
 	// act
 	var wg sync.WaitGroup
