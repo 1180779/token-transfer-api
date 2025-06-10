@@ -239,87 +239,102 @@ func (suite *testSuite) TestTransfer_SelfTransfer() {
 // TestTransfer_RaceCondition tests concurrent transfers to simulate race conditions.
 func (suite *testSuite) TestTransfer_RaceCondition() {
 	// assemble
-	walletAddress := address.HexToAddress(db.DefaultAccountHex)
-	err := testDB.Model(&db.Account{}).
-		Where("address = ?", walletAddress).
-		Update("amount", decimal.NewFromInt64(10)).Error
-	require.NoError(suite.T(), err, setupFailed)
-
-	currentBalance := getAccountBalance(suite, walletAddress)
-	assert.Equal(suite.T(), decimal.NewFromInt64(10), currentBalance)
-
-	transfers := []struct {
-		amount   int64
-		fromAddr string
-		toAddr   string
-	}{
-		{amount: 1, fromAddr: "0x1111111111111111111111111111111111111111", toAddr: db.DefaultAccountHex},
-		{amount: 4, fromAddr: db.DefaultAccountHex, toAddr: "0x2222222222222222222222222222222222222222"},
-		{amount: 7, fromAddr: db.DefaultAccountHex, toAddr: "0x3333333333333333333333333333333333333333"},
-	}
-
-	// create the 0x1111111111111111111111111111111111111111 account
-	err = testDB.FirstOrCreate(&db.Account{
-		Address: address.FromHex("0x1111111111111111111111111111111111111111"),
-		Amount:  decimal.NewFromInt64(1),
-	}).Error
-	assert.NoError(suite.T(), err, setupFailed)
+	const (
+		repeat   = 10
+		logEvery = 5
+	)
 
 	// act
-	var wg sync.WaitGroup
-	results := make(chan error, len(transfers))
-	for i, txData := range transfers {
-		wg.Add(1)
-		go func(idx int, amount int64, fromAddr string, toAddr string) {
-			defer wg.Done()
-			input := model.Transfer{
-				FromAddress: address.FromHex(fromAddr),
-				ToAddress:   address.FromHex(toAddr),
-				Amount:      decimal.NewFromInt64(amount),
+	suite.T().Logf("Running: %5d times", repeat)
+	for k := range repeat {
+		clearDBState(suite.T())
+
+		walletAddress := address.HexToAddress(db.DefaultAccountHex)
+		err := testDB.Model(&db.Account{}).
+			Where("address = ?", walletAddress).
+			Update("amount", decimal.NewFromInt64(10)).Error
+		require.NoError(suite.T(), err, setupFailed)
+
+		currentBalance := getAccountBalance(suite, walletAddress)
+		assert.Equal(suite.T(), decimal.NewFromInt64(10), currentBalance)
+
+		transfers := []struct {
+			amount   int64
+			fromAddr string
+			toAddr   string
+		}{
+			{amount: 1, fromAddr: "0x1111111111111111111111111111111111111111", toAddr: db.DefaultAccountHex},
+			{amount: 4, fromAddr: db.DefaultAccountHex, toAddr: "0x2222222222222222222222222222222222222222"},
+			{amount: 7, fromAddr: db.DefaultAccountHex, toAddr: "0x3333333333333333333333333333333333333333"},
+		}
+
+		// create the 0x1111111111111111111111111111111111111111 account
+		err = testDB.FirstOrCreate(&db.Account{
+			Address: address.FromHex("0x1111111111111111111111111111111111111111"),
+			Amount:  decimal.NewFromInt64(1),
+		}).Error
+		assert.NoError(suite.T(), err, setupFailed)
+
+		// act
+		var wg sync.WaitGroup
+		results := make(chan error, len(transfers))
+		for i, txData := range transfers {
+			wg.Add(1)
+			go func(idx int, amount int64, fromAddr string, toAddr string) {
+				defer wg.Done()
+				input := model.Transfer{
+					FromAddress: address.FromHex(fromAddr),
+					ToAddress:   address.FromHex(toAddr),
+					Amount:      decimal.NewFromInt64(amount),
+				}
+
+				_, err = suite.mutationResolver.Transfer(suite.ctx, input)
+				results <- err
+			}(i, txData.amount, txData.fromAddr, txData.toAddr)
+		}
+
+		wg.Wait()
+		close(results)
+
+		var errorsList []error
+		for err := range results {
+			if err != nil {
+				errorsList = append(errorsList, err)
 			}
+		}
 
-			_, err = suite.mutationResolver.Transfer(suite.ctx, input)
-			results <- err
-		}(i, txData.amount, txData.fromAddr, txData.toAddr)
-	}
+		// assert
+		finalBalanceInDB := getAccountBalance(suite, walletAddress)
 
-	wg.Wait()
-	close(results)
+		possibleFinalBalanceValues := []string{"0", "4", "7"}
 
-	var errorsList []error
-	for err := range results {
-		if err != nil {
-			errorsList = append(errorsList, err)
+		balanceAchieved := false
+		for _, expectedValStr := range possibleFinalBalanceValues {
+			expectedDec, err := decimal.NewFromString(expectedValStr)
+			require.NoError(suite.T(), err)
+			if finalBalanceInDB.Equal(expectedDec) {
+				balanceAchieved = true
+				break
+			}
+		}
+
+		assert.True(suite.T(), balanceAchieved, fmt.Sprintf("Final balance %s not among expected outcomes (0, 4, 7)", finalBalanceInDB.String()))
+
+		insufficientBalanceErrorsCount := 0
+		for _, err := range errorsList {
+			if errors.Is(err, eresolvers.InsufficientBalanceError) {
+				insufficientBalanceErrorsCount++
+			} else if err != nil {
+				suite.T().Errorf("Unexpected error during race condition test: %v", err)
+			}
+		}
+		assert.Contains(suite.T(), []int{0, 1}, insufficientBalanceErrorsCount, "Expected 0 or 1 insufficient balance errorsList")
+		suite.T().Logf("race test final balance: %s, Insufficient errorsList: %d", finalBalanceInDB.String(), insufficientBalanceErrorsCount)
+
+		if (k+1)%logEvery == 0 {
+			suite.T().Logf("Done: %5d/%5d", k+1, repeat)
 		}
 	}
-
-	// assert
-	finalBalanceInDB := getAccountBalance(suite, walletAddress)
-
-	possibleFinalBalanceValues := []string{"0", "4", "7"}
-
-	balanceAchieved := false
-	for _, expectedValStr := range possibleFinalBalanceValues {
-		expectedDec, err := decimal.NewFromString(expectedValStr)
-		require.NoError(suite.T(), err)
-		if finalBalanceInDB.Equal(expectedDec) {
-			balanceAchieved = true
-			break
-		}
-	}
-
-	assert.True(suite.T(), balanceAchieved, fmt.Sprintf("Final balance %s not among expected outcomes (0, 4, 7)", finalBalanceInDB.String()))
-
-	insufficientBalanceErrorsCount := 0
-	for _, err := range errorsList {
-		if errors.Is(err, eresolvers.InsufficientBalanceError) {
-			insufficientBalanceErrorsCount++
-		} else if err != nil {
-			suite.T().Errorf("Unexpected error during race condition test: %v", err)
-		}
-	}
-	assert.Contains(suite.T(), []int{0, 1}, insufficientBalanceErrorsCount, "Expected 0 or 1 insufficient balance errorsList")
-	suite.T().Logf("race test final balance: %s, Insufficient errorsList: %d", finalBalanceInDB.String(), insufficientBalanceErrorsCount)
 }
 
 // TestTransfer_FirstOrCreateRaceCondition tests concurrent transfers to simulate FirstOrCreate race condition.
