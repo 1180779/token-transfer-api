@@ -20,6 +20,14 @@ func (e AddressNotFoundError) Error() string {
 	return fmt.Sprintf("address not found: %s", e.Address.Hex())
 }
 
+type AddressCreationError struct {
+	Address address.Address
+}
+
+func (e AddressCreationError) Error() string {
+	return fmt.Sprintf("address not created: %s", e.Address.Hex())
+}
+
 type AddressRetrievalError struct {
 	Address address.Address
 }
